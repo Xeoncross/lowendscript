@@ -1,5 +1,9 @@
 #!/bin/bash
 
+############################################################
+# core functions
+############################################################
+
 function check_install {
 	if [ -z "`which "$1" 2>/dev/null`" ]
 	then
@@ -604,6 +608,10 @@ END
 	echo ' '
 }
 
+############################################################
+# Do system cleanup (remove unused libraries)
+############################################################
+
 function remove_unneeded {
 	# Some Debian have portmap installed. We don't need that.
 	check_remove /sbin/portmap portmap
@@ -627,6 +635,111 @@ function remove_unneeded {
 		check_remove /usr/lib/sm.bin/smtpd 'sendmail*'
 	fi
 }
+
+
+############################################################
+# Download ps_mem.py
+############################################################
+
+function install_ps_mem {
+	wget http://www.pixelbeat.org/scripts/ps_mem.py -O ~/ps_mem.py
+	chmod 700 ~/ps_mem.py
+	print_info "ps_mem.py has been setup successfully"
+	print_warn "Use ~/ps_mem.py to execute"
+}
+
+
+############################################################
+# Update apt sources (Ubuntu only) ... need to tweak for
+# Debian later
+############################################################
+function update_sources {
+	eval `grep '^DISTRIB_CODENAME=' /etc/*-release 2>/dev/null`
+	# echo $DISTRIB_CODENAME
+
+	if [ "$DISTRIB_CODENAME" == "" ]
+	then
+		die "Unknown Ubuntu flavor $DISTRIB_CODENAME"
+	fi
+
+cat > /etc/apt/sources.list <<END
+## main & restricted repositories
+deb http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME main restricted
+deb-src http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME main restricted
+
+deb http://security.ubuntu.com/ubuntu $DISTRIB_CODENAME-updates main restricted
+deb-src http://security.ubuntu.com/ubuntu $DISTRIB_CODENAME-updates main restricted
+
+deb http://security.ubuntu.com/ubuntu $DISTRIB_CODENAME-security main restricted
+deb-src http://security.ubuntu.com/ubuntu $DISTRIB_CODENAME-security main restricted
+
+## universe repositories - uncomment to enable
+deb http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME universe
+deb-src http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME universe
+
+deb http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME-updates universe
+deb-src http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME-updates universe
+
+deb http://security.ubuntu.com/ubuntu $DISTRIB_CODENAME-security universe
+deb-src http://security.ubuntu.com/ubuntu $DISTRIB_CODENAME-security universe
+END
+
+	print_info "/etc/apt/sources.list updated for "$DISTRIB_CODENAME
+}
+
+
+############################################################
+# Install vzfree (Ubuntu OpenVZ containers only)
+############################################################
+function install_vzfree {
+	print_warn "build-essential package is now being installed which will take additional diskspace"
+	check_install build-essential build-essential
+	wget http://hostingfu.com/files/vzfree/vzfree-0.1.tgz
+	tar -vxf vzfree-0.1.tgz
+	cd vzfree-0.1
+	make && make install
+	cd ~
+	vzfree
+	print_info "vzfree has been installed"
+	rm -fr vzfree-0.1 vzfree-0.1.tgz
+}
+
+
+############################################################
+# Install Webmin
+############################################################
+function install_webmin {
+	print_warn "Make sure you have update the apt file first RUN setup.sh apt TO UPDATE"
+	print_info "Downloading required packages"
+	
+	# Temporary workaround at the moment, will fix it later
+	apt-get install -q -y perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl
+	
+	# Making sure there are no other dependancies left
+	apt-get upgrade -q -y -f
+	print_info "Downloading Webmin"
+	wget http://www.webmin.com/download/deb/webmin-current.deb -O /tmp/webmin.deb
+	print_info "Installing webmin ..."
+	dpkg -i /tmp/webmin.deb
+	rm -fr /tmp/webmin.deb
+	print_info "Not: If the installation ends with an error, please run it again"
+}
+
+
+############################################################
+# Network / IO tests
+############################################################
+function runtests {
+	print_info "Classic I/O test"
+	print_info "dd if=/dev/zero of=iotest bs=64k count=16k conv=fdatasync && rm -fr iotest"
+	dd if=/dev/zero of=iotest bs=64k count=16k conv=fdatasync && rm -fr iotest
+
+	print_info "Network test"
+	print_info "wget cachefly.cachefly.net/100mb.test -O 100mb.test && rm -fr 100mb.test"
+	wget cachefly.cachefly.net/100mb.test -O 100mb.test && rm -fr 100mb.test
+}
+
+
 
 function update_upgrade {
 	# Run through the apt-get update/upgrade first. This should be done before
@@ -687,6 +800,21 @@ system)
 	install_iftop
 	install_syslogd
 	;;
+apt)
+	update_sources
+	;;
+ps_mem)
+	install_ps_mem
+	;;
+vzfree)
+	install_vzfree
+	;;
+webmin)
+	install_webmin
+	;;
+test)
+	runtests
+	;;
 *)
 	echo 'Usage:' `basename $0` '[option] [argument]'
 	echo 'Available options (in recomended order):'
@@ -700,6 +828,13 @@ system)
 	echo '  - php                    (install PHP5-FPM with APC, cURL, suhosin, etc...)'
 	echo '  - site      [domain.tld] (create nginx vhost and /var/www/$site/public)'
 	echo '  - mysqluser [domain.tld] (create matching mysql user and database)'
+	echo '  '
+	echo '... and now some extras'
+	echo '  - apt                    (update sources.list for UBUNTU only)'
+	echo '  - ps_mem                 (Download the handy python script to report memory usage)'
+	echo '  - vzfree                 (Install vzfree for correct memory reporting on OpenVZ VPS)'
+	echo '  - webmin                 (Install Webmin for VPS management)'
+	echo '  - test                   (Run the classic disk IO and classic cachefly network test)'
 	echo '  '
 	;;
 esac
