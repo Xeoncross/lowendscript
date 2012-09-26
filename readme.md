@@ -33,6 +33,36 @@ When running the iptables or dropbear install you must specify a SSH port. Remem
 	$ ./setup-debian.sh exim4
 	$ ./setup-debian.sh site example.com
 
+#### ... and now time for some extras
+
+##### Webmin
+
+	$ ./setup-debian.sh webmin
+
+##### vzfree
+
+Supported only on OpenVZ only, vzfree reports correct memory usage
+
+	$ ./setup-debian.sh vzfree
+
+##### Classic Disk I/O and Network test
+
+Run the classic Disk IO (dd) & Classic Network (cachefly) Test
+
+	$ ./setup-debian.sh test
+
+##### Neat python script to report memory usage per app
+
+Neat python script to report memory usage per app
+
+	$ ./setup-debian.sh ps_mem
+
+##### sources.list updating (Ubuntu only)
+
+Updates Ubuntu /etc/apt/sources.list to default based on whatever version you are running
+
+	$ ./setup-debian.sh apt
+
 ## After installation
 
 MySQL root is given a new password which is located in ~root/.my.cnf.

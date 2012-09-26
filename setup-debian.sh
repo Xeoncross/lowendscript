@@ -1,5 +1,9 @@
 #!/bin/bash
 
+############################################################
+# core functions
+############################################################
+
 function check_install {
 	if [ -z "`which "$1" 2>/dev/null`" ]
 	then
@@ -628,6 +632,102 @@ function remove_unneeded {
 	fi
 }
 
+############################################################
+# Download ps_mem.py
+############################################################
+
+function install_ps_mem {
+	wget http://www.pixelbeat.org/scripts/ps_mem.py -O ~/ps_mem.py
+	chmod 700 ~/ps_mem.py
+	print_info "ps_mem.py has been setup successfully"
+	print_warn "Use ~/ps_mem.py to execute"
+}
+
+############################################################
+# Install vzfree (Ubuntu OpenVZ containers only)
+############################################################
+function install_vzfree {
+	print_warn "build-essential package is now being installed which will take additional diskspace"
+	check_install build-essential build-essential
+	wget http://hostingfu.com/files/vzfree/vzfree-0.1.tgz -O ~/vzfree-0.1.tgz
+	tar -vxf ~/vzfree-0.1.tgz
+	cd ~/vzfree-0.1
+	make && make install
+	cd ~
+	vzfree
+	print_info "vzfree has been installed"
+	rm -fr ~/vzfree-0.1 ~/vzfree-0.1.tgz
+}
+
+############################################################
+# Install Webmin
+############################################################
+function install_webmin {
+	print_warn "Make sure you have update the apt file first RUN 'bash setup-debian.sh apt' TO UPDATE"
+	print_info "Downloading required packages"
+
+	# Temporary workaround at the moment, will fix it later
+	apt-get install -q -y perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl
+
+	# Making sure there are no other dependancies left
+	apt-get upgrade -q -y -f
+	print_info "Downloading Webmin"
+	wget http://www.webmin.com/download/deb/webmin-current.deb -O /tmp/webmin.deb
+	print_info "Installing webmin ..."
+	dpkg -i /tmp/webmin.deb
+	rm -fr /tmp/webmin.deb
+	print_info "Not: If the installation ends with an error, please run it again"
+}
+
+############################################################
+# Classic Disk I/O and Network speed tests
+############################################################
+function runtests {
+	print_info "Classic I/O test"
+	print_info "dd if=/dev/zero of=iotest bs=64k count=16k conv=fdatasync && rm -fr iotest"
+	dd if=/dev/zero of=iotest bs=64k count=16k conv=fdatasync && rm -fr iotest
+
+	print_info "Network test"
+	print_info "wget cachefly.cachefly.net/100mb.test -O 100mb.test && rm -fr 100mb.test"
+	wget cachefly.cachefly.net/100mb.test -O 100mb.test && rm -fr 100mb.test
+}
+
+############################################################
+# Print OS summary (OS, ARCH, VERSION)
+############################################################
+function show_os_arch_version {
+    # Thanks for Mikel (http://unix.stackexchange.com/users/3169/mikel) for the code sample which was later modified a bit
+    # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
+    ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
+    if [ -f /etc/lsb-release ]; then
+        . /etc/lsb-release
+        OS=$DISTRIB_ID
+        VERSION=$DISTRIB_RELEASE
+    elif [ -f /etc/debian_version ]; then
+        # Work on Debian and Ubuntu alike
+        OS=$(lsb_release -si)
+        VERSION=$(lsb_release -sr)
+    elif [ -f /etc/redhat-release ]; then
+        # Add code for Red Hat and CentOS here
+        OS=Redhat
+        VERSION=$(uname -r)
+    else
+        # Pretty old OS? fallback to compatibility mode
+        OS=$(uname -s)
+        VERSION=$(uname -r)
+    fi
+
+    OS_SUMMARY=$OS
+    OS_SUMMARY+=" "
+    OS_SUMMARY+=$VERSION
+    OS_SUMMARY+=" "
+    OS_SUMMARY+=$ARCH
+    OS_SUMMARY+="bit"
+
+    print_info "$OS_SUMMARY"
+}
+
 function update_upgrade {
 	# Run through the apt-get update/upgrade first. This should be done before
 	# we try to install any package
@@ -674,6 +774,21 @@ iptables)
 dropbear)
 	install_dropbear $2
 	;;
+ps_mem)
+	install_ps_mem
+	;;
+vzfree)
+	install_vzfree
+	;;
+webmin)
+	install_webmin
+	;;
+test)
+	runtests
+	;;
+info)
+        show_os_arch_version
+        ;;
 system)
 	update_timezone
 	remove_unneeded
@@ -688,6 +803,8 @@ system)
 	install_syslogd
 	;;
 *)
+        show_os_arch_version
+        echo '  '
 	echo 'Usage:' `basename $0` '[option] [argument]'
 	echo 'Available options (in recomended order):'
 	echo '  - dotdeb                 (install dotdeb apt source for nginx +1.0)'
@@ -700,6 +817,14 @@ system)
 	echo '  - php                    (install PHP5-FPM with APC, cURL, suhosin, etc...)'
 	echo '  - site      [domain.tld] (create nginx vhost and /var/www/$site/public)'
 	echo '  - mysqluser [domain.tld] (create matching mysql user and database)'
+	echo '  '
+	echo '... and now some extras'
+        echo '  - info                   (Displays information about the OS, ARCH and VERSION)'
+	echo '  - apt                    (update sources.list for UBUNTU only)'
+	echo '  - ps_mem                 (Download the handy python script to report memory usage)'
+	echo '  - vzfree                 (Install vzfree for correct memory reporting on OpenVZ VPS)'
+	echo '  - webmin                 (Install Webmin for VPS management)'
+	echo '  - test                   (Run the classic disk IO and classic cachefly network test)'
 	echo '  '
 	;;
 esac
