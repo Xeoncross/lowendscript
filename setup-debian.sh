@@ -257,14 +257,16 @@ function install_php {
 	echo 'Using PHP-FPM to manage PHP processes'
 	echo ' '
 
-	mv /etc/php5/conf.d/apc.ini /etc/php5/conf.d/orig.apc.ini
+        print_info "Taking configuration backups in /root/bkps; you may keep or delete this directory"
+        mkdir /root/bkps
+	mv /etc/php5/conf.d/apc.ini /root/bkps/apc.ini
 
 cat > /etc/php5/conf.d/apc.ini <<END
 [APC]
 extension=apc.so
 apc.enabled=1
 apc.shm_segments=1
-apc.shm_size=16
+apc.shm_size=16M
 apc.ttl=7200
 apc.user_ttl=7200
 apc.num_files_hint=1024
@@ -276,7 +278,7 @@ apc.enable_cli=0
 apc.rfc1867=0
 END
 
-	mv /etc/php5/conf.d/suhosin.ini /etc/php5/conf.d/orig.suhosin.ini
+	mv /etc/php5/conf.d/suhosin.ini /root/bkps/suhosin.ini
 
 cat > /etc/php5/conf.d/suhosin.ini <<END
 ; configuration for php suhosin module
@@ -680,6 +682,21 @@ function install_webmin {
 }
 
 ############################################################
+# Generate SSH Key
+############################################################
+function gen_ssh_key {
+        print_warn "Generating the ssh-key (1024 bit)"
+        if [ -z "$1" ]
+        then
+                ssh-keygen -t dsa -b 1024 -f ~/id_rsa
+                print_warn "generated ~/id_rsa"
+        else
+                ssh-keygen -t dsa -b 1024 -f ~/"$1"
+                print_warn "generated ~/$1"
+        fi
+}
+
+############################################################
 # Classic Disk I/O and Network speed tests
 ############################################################
 function runtests {
@@ -783,6 +800,9 @@ vzfree)
 webmin)
 	install_webmin
 	;;
+sshkey)
+        gen_ssh_key $2
+        ;;
 test)
 	runtests
 	;;
@@ -820,6 +840,7 @@ system)
 	echo '  '
 	echo '... and now some extras'
         echo '  - info                   (Displays information about the OS, ARCH and VERSION)'
+        echo '  - sshkey                 (Generate SSH key)'
 	echo '  - apt                    (update sources.list for UBUNTU only)'
 	echo '  - ps_mem                 (Download the handy python script to report memory usage)'
 	echo '  - vzfree                 (Install vzfree for correct memory reporting on OpenVZ VPS)'
