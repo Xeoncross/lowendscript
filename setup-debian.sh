@@ -482,6 +482,100 @@ END
 	print_warn "You may can test PHP functionality by accessing $1/phpinfo.php"
 }
 
+function install_wordpress {
+
+	if [ -z "$1" ]
+	then
+		die "Usage: `basename $0` wordpress [domain]"
+	fi
+	
+	# Setup folder
+	mkdir /var/www/$1
+	mkdir /var/www/$1/public
+
+	# Downloading the WordPress' latest and greatest distribution.
+    mkdir /tmp/wordpress.$$
+    wget -O - http://wordpress.org/latest.tar.gz | \
+        tar zxf - -C /tmp/wordpress.$$
+    cp -a /tmp/wordpress.$$/wordpress/. "/var/www/$1/public"
+    rm -rf /tmp/wordpress.$$
+    chown root:root -R "/var/www/$1/public"
+	
+	# Setting up the MySQL database
+    dbname=`echo $1 | tr . _`
+	echo Database Name = 'echo $1 | tr . _'
+    userid=`get_domain_name $1`
+    # MySQL userid cannot be more than 15 characters long
+    userid="${userid:0:15}"
+    passwd=`get_password "$userid@mysql"`
+	# Write wp.config file
+    cp "/var/www/$1/public/wp-config-sample.php" "/var/www/$1/public/wp-config.php"
+	salt=$(curl -L https://api.wordpress.org/secret-key/1.1/salt/)
+	defineString='put your unique phrase here'
+	printf '%s\n' "g/$defineString/d" a "$salt" . w | ed -s /var/www/$1/public/wp-config.php
+    sed -i "s/database_name_here/$dbname/; s/username_here/$userid/; s/password_here/$passwd/" \
+        "/var/www/$1/public/wp-config.php"
+		
+		cat > "/var/www/$1/mysql.conf" <<END
+[mysql]
+user = $userid
+password = $passwd
+database = $dbname
+END
+	chmod 600 "/var/www/$1/mysql.conf"
+		
+    mysqladmin create "$dbname"
+    echo "GRANT ALL PRIVILEGES ON \`$dbname\`.* TO \`$userid\`@localhost IDENTIFIED BY '$passwd';" | \
+        mysql
+	
+	# Setting up Nginx mapping
+	cat > "/etc/nginx/sites-available/$1.conf" <<END
+server {
+	listen 80;
+	server_name www.$1 $1;
+	root /var/www/$1/public;
+	index index.php;
+
+	access_log  /var/www/$1/access.log;
+	error_log  /var/www/$1/error.log;
+
+	# Directives to send expires headers and turn off 404 error logging.
+	location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+		expires max;
+		log_not_found off;
+		access_log off;
+	}
+
+	location = /favicon.ico {
+		log_not_found off;
+		access_log off;
+	}
+
+	location = /robots.txt {
+		allow all;
+		log_not_found off;
+		access_log off;
+	}
+
+	## Disable viewing .htaccess & .htpassword
+	location ~ /\.ht {
+		deny  all;
+	}
+
+	include /etc/nginx/php.conf;
+}
+END
+	# Create the link so nginx can find it
+	ln -s /etc/nginx/sites-available/$1.conf /etc/nginx/sites-enabled/$1.conf
+
+	# PHP/Nginx needs permission to access this
+	chown www-data:www-data -R "/var/www/$1"
+
+	invoke-rc.d nginx restart
+
+	print_warn "New wordpress site successfully installed."
+}
+
 function install_mysqluser {
 
 	if [ -z "$1" ]
@@ -782,6 +876,9 @@ dotdeb)
 site)
 	install_site $2
 	;;
+wordpress)
+	install_wordpress $2
+	;;	
 mysqluser)
 	install_mysqluser $2
 	;;
@@ -836,6 +933,7 @@ system)
 	echo '  - nginx                  (install nginx and create sample PHP vhosts)'
 	echo '  - php                    (install PHP5-FPM with APC, cURL, suhosin, etc...)'
 	echo '  - site      [domain.tld] (create nginx vhost and /var/www/$site/public)'
+	echo '  - wordpress      [domain.tld] (create nginx vhost and /var/www/$wordpress/public)'
 	echo '  - mysqluser [domain.tld] (create matching mysql user and database)'
 	echo '  '
 	echo '... and now some extras'
