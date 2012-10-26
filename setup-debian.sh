@@ -499,8 +499,7 @@ function install_wordpress {
         tar zxf - -C /tmp/wordpress.$$
     cp -a /tmp/wordpress.$$/wordpress/. "/var/www/$1/public"
     rm -rf /tmp/wordpress.$$
-    chown root:root -R "/var/www/$1/public"
-	
+    	
 	# Setting up the MySQL database
     dbname=`echo $1 | tr . _`
 	echo Database Name = 'echo $1 | tr . _'
@@ -539,31 +538,70 @@ server {
 	access_log  /var/www/$1/access.log;
 	error_log  /var/www/$1/error.log;
 
-	# Directives to send expires headers and turn off 404 error logging.
-	location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
-		expires max;
-		log_not_found off;
-		access_log off;
-	}
+	# unless the request is for a valid file, send to bootstrap
+	if (!-e $request_filename)
+    {
+	    rewrite ^(.+)$ /index.php?q=$1 last;
+    }
+ 
+    # catch all
+    error_page 404 /index.php;
 
-	location = /favicon.ico {
-		log_not_found off;
-		access_log off;
-	}
+    # Directives to send expires headers and turn off 404 error logging.
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+        expires max;
+        log_not_found off;
+        access_log off;
+    }
 
-	location = /robots.txt {
-		allow all;
-		log_not_found off;
-		access_log off;
-	}
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
 
-	## Disable viewing .htaccess & .htpassword
-	location ~ /\.ht {
-		deny  all;
-	}
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+    }
 
-	include /etc/nginx/php.conf;
+    ## Disable viewing .htaccess & .htpassword
+    location ~ /\.ht {
+        deny  all;
+    }
+
+    location / {
+                # This is cool because no php is touched for static content. 
+                # include the "?$args" part so non-default permalinks doesn't break when using query string
+                try_files $uri $uri/ /index.php?$args;
+        }
+
+    # use fastcgi for all php files
+    location ~ \.php$
+    {
+        try_files $uri =404;
+
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME /var/www/$1/public$fastcgi_script_name;
+        include fastcgi_params;
+
+        # Some default config
+        fastcgi_connect_timeout        20;
+        fastcgi_send_timeout          180;
+        fastcgi_read_timeout          180;
+        fastcgi_buffer_size          128k;
+        fastcgi_buffers            4 256k;
+        fastcgi_busy_buffers_size    256k;
+        fastcgi_temp_file_write_size 256k;
+        fastcgi_intercept_errors    on;
+        fastcgi_ignore_client_abort off;
+        
+    }
+ 
 }
+
+
 END
 	# Create the link so nginx can find it
 	ln -s /etc/nginx/sites-available/$1.conf /etc/nginx/sites-enabled/$1.conf
