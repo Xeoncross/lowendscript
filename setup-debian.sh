@@ -539,7 +539,7 @@ server {
 	error_log  /var/www/$1/error.log;
 
 	# unless the request is for a valid file, send to bootstrap
-	if (!-e $request_filename)
+	if (!-e \$request_filename)
     {
 	    rewrite ^(.+)$ /index.php?q=$1 last;
     }
@@ -572,18 +572,18 @@ server {
 
     location / {
                 # This is cool because no php is touched for static content. 
-                # include the "?$args" part so non-default permalinks doesn't break when using query string
-                try_files $uri $uri/ /index.php?$args;
+                # include the "?\$args" part so non-default permalinks doesn't break when using query string
+                try_files \$uri \$uri/ /index.php?\$args;
         }
 
     # use fastcgi for all php files
     location ~ \.php$
     {
-        try_files $uri =404;
+        try_files \$uri =404;
 
         fastcgi_pass 127.0.0.1:9000;
         fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME /var/www/$1/public$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME /var/www/$1/public\$fastcgi_script_name;
         include fastcgi_params;
 
         # Some default config
