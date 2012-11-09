@@ -23,15 +23,16 @@ When running the iptables or dropbear install you must specify a SSH port. Remem
 ### Warning! This script is self destructive, it'll overwrite previous configs during reinstallation.
 
 	wget --no-check-certificate https://raw.github.com/Xeoncross/lowendscript/master/setup-debian.sh
-	$ ./setup-debian.sh dotdeb
+	$ ./setup-debian.sh dotdeb # not required if using Ubuntu
 	$ ./setup-debian.sh system
-	$ ./setup-debian.sh dropbear 22  <b>*(or any other port number)</b>
+	$ ./setup-debian.sh dropbear 22  # or any other port number
 	$ ./setup-debian.sh iptables
 	$ ./setup-debian.sh mysql
 	$ ./setup-debian.sh nginx
 	$ ./setup-debian.sh php
 	$ ./setup-debian.sh exim4
 	$ ./setup-debian.sh site example.com
+	$ ./setup-debian.sh wordpress example.com
 
 #### ... and now time for some extras
 
@@ -73,6 +74,16 @@ Either you want to generate ssh-keys (id_rsa) or a custom key for something (rsy
 Note: argument is optional, if its left out, it will write "id_rsa" key
 
 	$ ./setup-debian.sh sshkey [optional argument_1]
+    
+##### Extras
+
+Fixing locale on some OpenVZ Ubuntu templates
+
+	$ ./setup-debian.sh locale
+
+Configure or reconfigure MOTD
+
+	$ ./setup-debian.sh motd
 
 ## After installation
 
@@ -90,3 +101,4 @@ For security reasons delete, move or password protect "new_domain/public/phpinfo
 - [ilevkov](https://github.com/ilevkov/lowendscript),
 - [asimzeeshan](https://github.com/asimzeeshan)
 - and many others!
+

@@ -769,7 +769,6 @@ function remove_unneeded {
 ############################################################
 # Download ps_mem.py
 ############################################################
-
 function install_ps_mem {
 	wget http://www.pixelbeat.org/scripts/ps_mem.py -O ~/ps_mem.py
 	chmod 700 ~/ps_mem.py
@@ -778,7 +777,7 @@ function install_ps_mem {
 }
 
 ############################################################
-# Install vzfree (Ubuntu OpenVZ containers only)
+# Install vzfree (OpenVZ containers only)
 ############################################################
 function install_vzfree {
 	print_warn "build-essential package is now being installed which will take additional diskspace"
@@ -797,35 +796,53 @@ function install_vzfree {
 # Install Webmin
 ############################################################
 function install_webmin {
-	print_warn "Make sure you have update the apt file first RUN 'bash setup-debian.sh apt' TO UPDATE"
-	print_info "Downloading required packages"
-
-	# Temporary workaround at the moment, will fix it later
-	apt-get install -q -y perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl
-
+	print_warn "Make sure you have update the apt file first RUN 'bash `basename $0` apt' to update the /etc/apt/sources.list"
+	
+	print_info "Installing required packages"
+	check_install perl perl
+	check_install libnet-ssleay-perl libnet-ssleay-perl
+	check_install openssl openssl
+	check_install libauthen-pam-perl libauthen-pam-perl
+	check_install libpam-runtime libpam-runtime
+	check_install libio-pty-perl libio-pty-perl
+	check_install libapt-pkg-perl libapt-pkg-perl
+	check_install apt-show-versions apt-show-versions
+	
 	# Making sure there are no other dependancies left
 	apt-get upgrade -q -y -f
+	
+	# Download and install Webmin
 	print_info "Downloading Webmin"
 	wget http://www.webmin.com/download/deb/webmin-current.deb -O /tmp/webmin.deb
 	print_info "Installing webmin ..."
 	dpkg -i /tmp/webmin.deb
 	rm -fr /tmp/webmin.deb
-	print_info "Not: If the installation ends with an error, please run it again"
+	print_warn "Special Note: If the installation ends with an error, please run it again"
 }
 
 ############################################################
 # Generate SSH Key
 ############################################################
 function gen_ssh_key {
-        print_warn "Generating the ssh-key (1024 bit)"
-        if [ -z "$1" ]
-        then
-                ssh-keygen -t dsa -b 1024 -f ~/id_rsa
-                print_warn "generated ~/id_rsa"
-        else
-                ssh-keygen -t dsa -b 1024 -f ~/"$1"
-                print_warn "generated ~/$1"
-        fi
+	print_warn "Generating the ssh-key (1024 bit)"
+	if [ -z "$1" ]
+	then
+		ssh-keygen -t dsa -b 1024 -f ~/id_rsa
+		print_warn "generated ~/id_rsa"
+	else
+		ssh-keygen -t dsa -b 1024 -f ~/"$1"
+		print_warn "generated ~/$1"
+	fi
+}
+
+############################################################
+# Configure MOTD at login
+############################################################
+function configure_motd {
+	apt_clean_all
+	update_upgrade
+	check_install landscape-common landscape-common
+	dpkg-reconfigure landscape-common
 }
 
 ############################################################
@@ -877,11 +894,32 @@ function show_os_arch_version {
     print_info "$OS_SUMMARY"
 }
 
+############################################################
+# Fix locale for OpenVZ Ubuntu templates
+############################################################
+function fix_locale {
+	check_install multipath-tools multipath-tools
+	export LANGUAGE=en_US.UTF-8
+	export LANG=en_US.UTF-8
+	export LC_ALL=en_US.UTF-8
+	
+	# Generate locale
+	locale-gen en_US.UTF-8
+	dpkg-reconfigure locales
+}
+
+function apt_clean_all {
+	apt-get clean all
+}
+
 function update_upgrade {
 	# Run through the apt-get update/upgrade first. This should be done before
 	# we try to install any package
 	apt-get -q -y update
 	apt-get -q -y upgrade
+	
+	# also remove the orphaned stuf
+	apt-get -q -y autoremove
 }
 
 function update_timezone {
@@ -916,7 +954,7 @@ site)
 	;;
 wordpress)
 	install_wordpress $2
-	;;	
+	;;
 mysqluser)
 	install_mysqluser $2
 	;;
@@ -936,14 +974,20 @@ webmin)
 	install_webmin
 	;;
 sshkey)
-        gen_ssh_key $2
-        ;;
+    gen_ssh_key $2
+    ;;
+motd)
+	configure_motd
+	;;
+locale)
+	fix_locale
+	;;
 test)
 	runtests
 	;;
 info)
-        show_os_arch_version
-        ;;
+	show_os_arch_version
+	;;
 system)
 	update_timezone
 	remove_unneeded
@@ -958,8 +1002,8 @@ system)
 	install_syslogd
 	;;
 *)
-        show_os_arch_version
-        echo '  '
+    show_os_arch_version
+    echo '  '
 	echo 'Usage:' `basename $0` '[option] [argument]'
 	echo 'Available options (in recomended order):'
 	echo '  - dotdeb                 (install dotdeb apt source for nginx +1.0)'
@@ -975,8 +1019,8 @@ system)
 	echo '  - mysqluser [domain.tld] (create matching mysql user and database)'
 	echo '  '
 	echo '... and now some extras'
-        echo '  - info                   (Displays information about the OS, ARCH and VERSION)'
-        echo '  - sshkey                 (Generate SSH key)'
+    echo '  - info                   (Displays information about the OS, ARCH and VERSION)'
+    echo '  - sshkey                 (Generate SSH key)'
 	echo '  - apt                    (update sources.list for UBUNTU only)'
 	echo '  - ps_mem                 (Download the handy python script to report memory usage)'
 	echo '  - vzfree                 (Install vzfree for correct memory reporting on OpenVZ VPS)'
