@@ -1024,6 +1024,8 @@ system)
 	echo '  - apt                    (update sources.list for UBUNTU only)'
 	echo '  - ps_mem                 (Download the handy python script to report memory usage)'
 	echo '  - vzfree                 (Install vzfree for correct memory reporting on OpenVZ VPS)'
+	echo '  - motd                   (Configures and enables the default MOTD)'
+	echo '  - locale                 (Fix locales issue with OpenVZ Ubuntu templates)'
 	echo '  - webmin                 (Install Webmin for VPS management)'
 	echo '  - test                   (Run the classic disk IO and classic cachefly network test)'
 	echo '  '
