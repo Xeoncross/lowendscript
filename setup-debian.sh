@@ -819,13 +819,13 @@ function install_vzfree {
 	print_warn "build-essential package is now being installed which will take additional diskspace"
 	check_install build-essential build-essential
 	wget http://hostingfu.com/files/vzfree/vzfree-0.1.tgz -O ~/vzfree-0.1.tgz
-	tar -vxf ~/vzfree-0.1.tgz
-	cd ~/vzfree-0.1
+	tar -vxf vzfree-0.1.tgz -C ~
+	cd vzfree-0.1
 	make && make install
-	cd ~
+	cd ..
 	vzfree
 	print_info "vzfree has been installed"
-	rm -fr ~/vzfree-0.1 ~/vzfree-0.1.tgz
+	rm -fr vzfree-0.1 vzfree-0.1.tgz
 }
 
 ############################################################
