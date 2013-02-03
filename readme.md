@@ -33,6 +33,8 @@ When running the iptables or dropbear install you must specify a SSH port. Remem
 	$ ./setup-debian.sh exim4
 	$ ./setup-debian.sh site example.com
 	$ ./setup-debian.sh wordpress example.com
+	$ ./setup-debian.sh 3proxy 3128
+	$ ./setup-debian.sh 3proxyauth username password
 
 #### ... and now time for some extras
 
