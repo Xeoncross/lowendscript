@@ -252,7 +252,7 @@ function install_php {
 	check_install php5-cli php5-cli
 
 	# PHP modules
-	DEBIAN_FRONTEND=noninteractive apt-get -y install php-apc php5-suhosin php5-curl php5-gd php5-intl php5-mcrypt php-gettext php5-mysql php5-sqlite
+	DEBIAN_FRONTEND=noninteractive apt-get -y install php5-apc php5-suhosin php5-curl php5-gd php5-intl php5-mcrypt php-gettext php5-mysql php5-sqlite
 
 	echo 'Using PHP-FPM to manage PHP processes'
 	echo ' '
@@ -266,7 +266,7 @@ cat > /etc/php5/conf.d/apc.ini <<END
 extension=apc.so
 apc.enabled=1
 apc.shm_segments=1
-apc.shm_size=16M
+apc.shm_size=32M
 apc.ttl=7200
 apc.user_ttl=7200
 apc.num_files_hint=1024
@@ -754,7 +754,7 @@ function remove_unneeded {
 	# Other packages that seem to be pretty common in standard OpenVZ
 	# templates.
 	check_remove /usr/sbin/apache2 'apache2*'
-	check_remove /usr/sbin/named bind9
+	check_remove /usr/sbin/named 'bind9*'
 	check_remove /usr/sbin/smbd 'samba*'
 	check_remove /usr/sbin/nscd nscd
 
