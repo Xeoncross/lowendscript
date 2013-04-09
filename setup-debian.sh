@@ -12,6 +12,7 @@ function check_install {
 		while [ -n "$1" ]
 		do
 			DEBIAN_FRONTEND=noninteractive apt-get -q -y install "$1"
+			apt-get clean
 			print_info "$1 installed for $executable"
 			shift
 		done
@@ -24,6 +25,7 @@ function check_remove {
 	if [ -n "`which "$1" 2>/dev/null`" ]
 	then
 		DEBIAN_FRONTEND=noninteractive apt-get -q -y remove --purge "$2"
+		apt-get clean
 		print_info "$2 removed"
 	else
 		print_warn "$2 is not installed"
@@ -86,8 +88,9 @@ function print_warn {
 }
 
 
-## Installation of Applications
-
+############################################################
+# applications
+############################################################
 
 function install_dash {
 	check_install dash dash
@@ -122,7 +125,6 @@ function install_vim {
 }
 
 function install_dropbear {
-
 	if [ -z "$1" ]
 	then
 		die "Usage: `basename $0` dropbear [ssh-port-#]"
@@ -153,6 +155,8 @@ service ssh
 }
 END
 	invoke-rc.d xinetd restart
+
+	print_info "dropbear is installed and running"
 }
 
 function install_exim4 {
@@ -225,13 +229,24 @@ function install_mysql {
 	# Install a low-end copy of the my.cnf to disable InnoDB
 	invoke-rc.d mysql stop
 	cat > /etc/mysql/conf.d/lowendbox.cnf <<END
+# These values override values from /etc/mysql/my.cnf
+
 [mysqld]
 key_buffer = 12M
 query_cache_size = 0
 table_cache = 32
 
-ignore_builtin_innodb
+init_connect='SET collation_connection = utf8_unicode_ci'
+character-set-server = utf8
+collation-server = utf8_unicode_ci
+
 default_storage_engine=MyISAM
+skip-innodb
+
+log-slow-queries=/var/log/mysql/slow-queries.log
+
+[client]
+default-character-set = utf8
 END
 	invoke-rc.d mysql start
 
@@ -398,18 +413,38 @@ location ~ \.php$ {
 # The exploit also can be stopped by adding "cgi.fix_pathinfo = 0" in your php.ini file.
 END
 
+	# remove localhost-config
+	rm -f /etc/nginx/sites-enabled/default
+
 	echo 'Created /etc/nginx/php.conf for PHP sites'
 	echo 'Created /etc/nginx/sites-available/default_php sample vhost'
 	echo ' '
+
+ if [ -f /etc/nginx/sites-available/default ]
+	then
+		# Made IPV6 Listener not conflict and throw errors
+		sed -i \
+			"s/listen \[::]:80 default_server;/listen [::]:80 default_server ipv6only=on;/" \
+			/etc/nginx/sites-available/default
+ fi
+
  if [ -f /etc/nginx/nginx.conf ]
 	then
+		# one worker for each CPU and max 1024 connections/worker
+		cpu_count=`grep -c ^processor /proc/cpuinfo`
 		sed -i \
-			"s/worker_processes 4;/worker_processes 1;/" \
+			"s/worker_processes [0-9]*;/worker_processes $cpu_count;/" \
 			/etc/nginx/nginx.conf
 		sed -i \
-			"s/worker_connections 768;/worker_connections 1024;/" \
+			"s/worker_connections [0-9]*;/worker_connections 1024;/" \
+			/etc/nginx/nginx.conf
+		# Enable advanced compression
+		sed -i \
+			"s/# gzip_/gzip_/g" \
 			/etc/nginx/nginx.conf
  fi
+
+	# restart nginx
 	invoke-rc.d nginx restart
 }
 
@@ -440,6 +475,7 @@ server {
 	server_name www.$1 $1;
 	root /var/www/$1/public;
 	index index.html index.htm index.php;
+	client_max_body_size 32m;
 
 	access_log  /var/www/$1/access.log;
 	error_log  /var/www/$1/error.log;
@@ -658,7 +694,7 @@ END
 
 function install_iptables {
 
-	check_install iptables
+	check_install iptables iptables
 
 	if [ -z "$1" ]
 	then
@@ -711,6 +747,8 @@ function install_iptables {
 # log iptables denied calls (Can grow log files fast!)
 #-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
 
+# Misc
+
 # Reject all other inbound - default deny unless explicitly allowed policy
 #-A INPUT -j REJECT
 #-A FORWARD -j REJECT
@@ -751,8 +789,7 @@ function remove_unneeded {
 	# before running apt-get update.
 	check_remove /usr/sbin/rsyslogd rsyslog
 
-	# Other packages that seem to be pretty common in standard OpenVZ
-	# templates.
+	# Other packages that are quite common in standard OpenVZ templates.
 	check_remove /usr/sbin/apache2 'apache2*'
 	check_remove /usr/sbin/named 'bind9*'
 	check_remove /usr/sbin/smbd 'samba*'
@@ -945,17 +982,18 @@ function fix_locale {
 	dpkg-reconfigure locales
 }
 
-function apt_clean_all {
-	apt-get clean all
+function apt_clean {
+	apt-get -q -y autoclean
+	apt-get -q -y clean
 }
 
 function update_upgrade {
-	# Run through the apt-get update/upgrade first. This should be done before
-	# we try to install any package
+	# Run through the apt-get update/upgrade first.
+	# This should be done before we try to install any package
 	apt-get -q -y update
 	apt-get -q -y upgrade
 
-	# also remove the orphaned stuf
+	# also remove the orphaned stuff
 	apt-get -q -y autoremove
 }
 
@@ -1227,23 +1265,24 @@ system)
 	install_iotop
 	install_iftop
 	install_syslogd
+	apt_clean
 	;;
 *)
 	show_os_arch_version
 	echo '  '
 	echo 'Usage:' `basename $0` '[option] [argument]'
 	echo 'Available options (in recomended order):'
-	echo '  - dotdeb                 (install dotdeb apt source for nginx +1.0)'
+	echo '  - dotdeb                 (install dotdeb apt source for nginx 1.2+)'
 	echo '  - system                 (remove unneeded, upgrade system, install software)'
-	echo '  - exim4                  (install exim4 mail server)'
 	echo '  - dropbear  [port]       (SSH server)'
 	echo '  - iptables  [port]       (setup basic firewall with HTTP(S) open)'
 	echo '  - mysql                  (install MySQL and set root password)'
 	echo '  - nginx                  (install nginx and create sample PHP vhosts)'
 	echo '  - php                    (install PHP5-FPM with APC, cURL, suhosin, etc...)'
+	echo '  - exim4                  (install exim4 mail server)'
 	echo '  - site      [domain.tld] (create nginx vhost and /var/www/$site/public)'
-	echo '  - wordpress      [domain.tld] (create nginx vhost and /var/www/$wordpress/public)'
 	echo '  - mysqluser [domain.tld] (create matching mysql user and database)'
+	echo '  - wordpress [domain.tld] (create nginx vhost and /var/www/$wordpress/public)'
 	echo '  '
 	echo '... and now some extras'
 	echo '  - info                   (Displays information about the OS, ARCH and VERSION)'
@@ -1255,7 +1294,7 @@ system)
 	echo '  - locale                 (Fix locales issue with OpenVZ Ubuntu templates)'
 	echo '  - webmin                 (Install Webmin for VPS management)'
 	echo '  - test                   (Run the classic disk IO and classic cachefly network test)'
-	echo '  - 3proxy                 (Install 3proxy - Free tiny proxy server, with authenticatin support, HTTP, SOCKS5 and whatever you can throw at it)'
+	echo '  - 3proxy                 (Install 3proxy - Free tiny proxy server, with authentication support, HTTP, SOCKS5 and whatever you can throw at it)'
 	echo '  - 3proxyauth             (add users/passwords to your proxy user authentication list)'
 	echo '  '
 	;;
