@@ -1,4 +1,4 @@
-## Debian 6 VPS Script
+## Debian 7 (wheezy) VPS Script
 
 Remove excess packages (apache2, sendmail, bind9, samba, nscd, etc) and install the basic components needed for a light-weight HTTP(S) web server:
 
@@ -103,5 +103,6 @@ To reduce ram usage, you may disable APC by moving or deleting the following fil
 - [LowEndBox admin (LEA)](https://github.com/lowendbox/lowendscript)
 - [Xeoncross](https://github.com/Xeoncross/lowendscript),
 - [ilevkov](https://github.com/ilevkov/lowendscript),
-- [asimzeeshan](https://github.com/asimzeeshan)
+- [asimzeeshan](https://github.com/asimzeeshan),
+- [x2q](https://github.com/x2q)
 - and many others!
