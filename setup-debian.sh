@@ -171,10 +171,20 @@ function install_exim4 {
 }
 
 function install_dotdeb {
-	#echo "deb http://mirror.us.leaseweb.net/dotdeb/ stable all" >> /etc/apt/sources.list
-	#echo "deb-src http://mirror.us.leaseweb.net/dotdeb/ stable all" >> /etc/apt/sources.list
-	echo "deb http://packages.dotdeb.org squeeze all" >> /etc/apt/sources.list
-	echo "deb-src http://packages.dotdeb.org squeeze all" >> /etc/apt/sources.list
+	# Debian version 6.x.x
+	if grep ^6. /etc/debian_version > /dev/null
+	then
+		echo "deb http://packages.dotdeb.org squeeze all" >> /etc/apt/sources.list
+		echo "deb-src http://packages.dotdeb.org squeeze all" >> /etc/apt/sources.list
+	fi
+
+	# Debian version 7.x.x
+	if grep ^7. /etc/debian_version > /dev/null
+	then
+		echo "deb http://packages.dotdeb.org wheezy all" >> /etc/apt/sources.list
+		echo "deb-src http://packages.dotdeb.org wheezy all" >> /etc/apt/sources.list
+	fi
+
 	wget -q -O - http://www.dotdeb.org/dotdeb.gpg | apt-key add -
 }
 
