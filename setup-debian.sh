@@ -247,8 +247,10 @@ query_cache_size = 0
 table_cache = 32
 
 init_connect='SET collation_connection = utf8_unicode_ci'
-character-set-server = utf8
-collation-server = utf8_unicode_ci
+init_connect='SET NAMES utf8' 
+character-set-server = utf8 
+collation-server = utf8_unicode_ci 
+skip-character-set-client-handshake
 
 default_storage_engine=MyISAM
 skip-innodb
