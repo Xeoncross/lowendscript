@@ -320,6 +320,10 @@ suhosin.post.max_totalname_length = 8192
 suhosin.sql.bailout_on_error = Off
 END
 
+	cp /etc/php5/fpm/pool.d/www.conf /root/bkps/www.conf
+	cat /root/bkps/www.conf | sed 's#127.0.0.1:9000#"unix:/var/run/php5-fpm.sock/"#' > /etc/php5/fpm/pool.d/www.conf
+
+
 	if [ -f /etc/php5/fpm/php.ini ]
 		then
 			sed -i \
@@ -415,7 +419,7 @@ location ~ \.php$ {
 	fastcgi_temp_file_write_size 256k;
 	fastcgi_intercept_errors    on;
 	fastcgi_ignore_client_abort off;
-	fastcgi_pass 127.0.0.1:9000;
+	fastcgi_pass   unix:/var/run/php5-fpm.sock;
 
 }
 # PHP search for file Exploit:
@@ -621,7 +625,7 @@ server {
     {
         try_files \$uri =404;
 
-        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME /var/www/$1/public\$fastcgi_script_name;
         include fastcgi_params;
