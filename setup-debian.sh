@@ -432,14 +432,6 @@ END
 	echo 'Created /etc/nginx/sites-available/default_php sample vhost'
 	echo ' '
 
- if [ -f /etc/nginx/sites-available/default ]
-	then
-		# Made IPV6 Listener not conflict and throw errors
-		sed -i \
-			"s/listen \[::]:80 default_server;/listen [::]:80 default_server ipv6only=on;/" \
-			/etc/nginx/sites-available/default
- fi
-
  if [ -f /etc/nginx/nginx.conf ]
 	then
 		# one worker for each CPU and max 1024 connections/worker
@@ -483,7 +475,7 @@ END
 	# Setting up Nginx mapping
 	cat > "/etc/nginx/sites-available/$1.conf" <<END
 server {
-	listen 80;
+	listen [::]:80;
 	server_name www.$1 $1;
 	root /var/www/$1/public;
 	index index.html index.htm index.php;
