@@ -1,4 +1,4 @@
-## Debian 6 VPS Script
+## Debian 6/7 VPS Script
 
 Remove excess packages (apache2, sendmail, bind9, samba, nscd, etc) and install the basic components needed for a light-weight HTTP(S) web server:
 
