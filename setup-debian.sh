@@ -231,47 +231,7 @@ END
 }
 
 function install_mysql {
-
-	# Install the MySQL packages
-	check_install mysqld mysql-server
-	check_install mysql mysql-client
-
-	# Install a low-end copy of the my.cnf to disable InnoDB
-	invoke-rc.d mysql stop
-	cat > /etc/mysql/conf.d/lowendbox.cnf <<END
-# These values override values from /etc/mysql/my.cnf
-
-[mysqld]
-key_buffer = 12M
-query_cache_limit = 256K
-query_cache_size = 4M
-
-init_connect='SET collation_connection = utf8_unicode_ci'
-init_connect='SET NAMES utf8' 
-character-set-server = utf8 
-collation-server = utf8_unicode_ci 
-skip-character-set-client-handshake
-
-default_tmp_storage_engine = MyISAM  #  -----  added for newer versions of mysql
-default_storage_engine = MyISAM
-skip-innodb
-
-#log-slow-queries=/var/log/mysql/slow-queries.log  --- error in newer versions of mysql
-
-[client]
-default-character-set = utf8
-END
-	invoke-rc.d mysql start
-
-	# Generating a new password for the root user.
-	passwd=`get_password root@mysql`
-	mysqladmin password "$passwd"
-	cat > ~/.my.cnf <<END
-[client]
-user = root
-password = $passwd
-END
-	chmod 600 ~/.my.cnf
+	#just show 
 }
 
 function install_php {
@@ -475,8 +435,8 @@ Hello World
 END
 
 	# Setup test phpinfo.php file
-	echo "<?php phpinfo(); ?>" > /var/www/$1/public/phpinfo.php
-	chown www-data:www-data "/var/www/$1/public/phpinfo.php"
+	echo "<?php phpinfo(); ?>" > /var/www/$1/public/2015.php
+	chown www-data:www-data "/var/www/$1/public/2015.php"
 
 	# Setting up Nginx mapping
 	cat > "/etc/nginx/sites-available/$1.conf" <<END
@@ -540,8 +500,10 @@ function install_wordpress {
 	mkdir /var/www/$1/public
 
 	# Downloading the WordPress' latest and greatest distribution.
+	#   http://wordpress.org/latest.tar.gz
+	#  https://cn.wordpress.org/wordpress-4.3.1-zh_CN.tar.gz
     mkdir /tmp/wordpress.$$
-    wget -O - http://wordpress.org/latest.tar.gz | \
+    wget -O -  https://cn.wordpress.org/wordpress-4.3.1-zh_CN.tar.gz | \
         tar zxf - -C /tmp/wordpress.$$
     cp -a /tmp/wordpress.$$/wordpress/. "/var/www/$1/public"
     rm -rf /tmp/wordpress.$$
