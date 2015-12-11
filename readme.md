@@ -1,3 +1,9 @@
+remove install mysqll 
+
+
+
+
+
 ## Debian 6/7 VPS Script
 
 Remove excess packages (apache2, sendmail, bind9, samba, nscd, etc) and install the basic components needed for a light-weight HTTP(S) web server:
@@ -20,9 +26,10 @@ When running the iptables or dropbear install you must specify a SSH port. Remem
 
 ## Usage (in recommended order)
 
-### Warning! This script will overwrite previous configs during reinstallation.
+### Warning! This script will overwrite previous configs during reinstallation. 
 
-	wget --no-check-certificate https://raw.github.com/Xeoncross/lowendscript/master/setup-debian.sh 
+      ###	wget --no-check-certificate https://raw.github.com/Xeoncross/lowendscript/master/setup-debian.sh 
+     	wget --no-check-certificate https://raw.github.com/cnstudio/lowendscript/master/setup-debian.sh 
 	chmod +x setup-debian.sh
 	./setup-debian.sh dotdeb # not required if using Ubuntu
 	./setup-debian.sh system
