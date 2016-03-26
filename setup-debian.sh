@@ -20,7 +20,7 @@ function check_install {
 		print_warn "$2 already installed"
 	fi
 }
-
+sadf
 function check_remove {
 	if [ -n "`which "$1" 2>/dev/null`" ]
 	then
