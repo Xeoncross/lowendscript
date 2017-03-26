@@ -256,7 +256,8 @@ default_tmp_storage_engine = MyISAM  #  -----  added for newer versions of mysql
 default_storage_engine = MyISAM
 skip-innodb
 
-#log-slow-queries=/var/log/mysql/slow-queries.log  --- error in newer versions of mysql
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow-queries.log
 
 [client]
 default-character-set = utf8
